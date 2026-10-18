@@ -553,6 +553,16 @@ else
       pkgs.patchelf
     ];
 
+    # Runtime setup hooks expose schema/icon directories for the launcher,
+    # matching nixpkgs' chromium wrapper (not the compilation environment).
+    buildInputs = [
+      pkgs.gsettings-desktop-schemas
+      pkgs.glib
+      pkgs.gtk3
+      pkgs.gtk4
+      pkgs.adwaita-icon-theme
+    ];
+
     # Like nixpkgs' outer chromium wrapper, runtime packaging must not force a
     # rebuild of the browser. unwrapped is intentionally byte-for-byte the same
     # derivation as the original source build.
@@ -587,7 +597,8 @@ else
       # copy of the ELF; leaving it untouched would bypass these runtime fixes.
       unlink "$out/bin/chromix"
       makeWrapper "$out/libexec/chromix/chrome" "$out/bin/chromix" \
-        --set FONTCONFIG_FILE "$out/etc/fonts/fonts.conf"
+        --set FONTCONFIG_FILE "$out/etc/fonts/fonts.conf" \
+        --prefix XDG_DATA_DIRS : "$GSETTINGS_SCHEMAS_PATH:$XDG_ICON_DIRS"
       runHook postInstall
     '';
 

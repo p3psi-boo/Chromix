@@ -834,3 +834,16 @@ python3 build/linux/unbundle/replace_gn_files.py --system-libraries flac libjpeg
     tar/zstd 校验通过，确认 out/Release 的 chrome、chrome_crashpad_handler、chrome_sandbox
     三个真实可执行文件均存在；输入 manifest 匹配。build-checkpoint 指向最新归档。
     本轮仅重跑必要失效任务及安装/外层打包，最终版本与 headless 测试仍待执行。
+
+31. **首次完整 Nix 包成功与真实运行通过（20:12–20:13 UTC）**：
+    nix build/installCheck 与后台服务退出 0，得到
+    `/nix/store/xicrdjz6rc7pjy5m8lsz227q8y64kqgg-chromix-154.0.8037.97`，
+    `--version` 返回 Chromium 154.0.8037.97。
+    verify-package.py 对该真实 store 包返回 0：三个 x86_64 ELF、资源、快照、ICD、字体与
+    许可证均检查通过；headless 完成同步 JavaScript 与 DOM 标记验证，没有传 --no-sandbox。
+    初次 JSON 留在 `~/.chromix-build/nix-package-verification-initial.json`。
+    但 stderr 暴露 `GLib-GIO-CRITICAL: g_settings_schema_source_lookup source != NULL`：
+    外层尚未像官方 default.nix 那样将 GSettings schema/icon 目录加入 XDG_DATA_DIRS。
+    对照官方补齐外层 buildInputs（gsettings-desktop-schemas/glib/gtk3/gtk4/adwaita-icon-theme）
+    与 launcher 的 XDG_DATA_DIRS 前缀；验证器增加对应 critical 提示的失败检查。
+    复核 unwrapped drvPath 前后一致，因此只重建外层运行时包，不重复 Chromium 编译。

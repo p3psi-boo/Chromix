@@ -102,3 +102,6 @@ python sysroot、installer、chromeos 测试里，与本构建无关）。
   不关闭功能，也不改变其他模块的全局 Nix include 环境。
 - 2026-10-18：原生派生安装 chrome_sandbox 改为普通可执行权限（755），与官方 Nix
   构建阶段不设置 setuid 的方式一致；不在不可变 store 中通过 sudo 人工修补权限。
+- 2026-10-18：外层 Nix launcher 按官方补齐 GSettings schema / 图标目录的 XDG_DATA_DIRS，
+  消除首次真实 headless 测试发现的 GLib-GIO-CRITICAL；验证器同步将该错误列为失败。
+  已核对原编译 derivation 未变，仅重建运行时包装层。

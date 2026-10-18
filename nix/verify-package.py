@@ -106,6 +106,8 @@ def verify(package: Path, version: str) -> dict:
             "--no-first-run", "--no-default-browser-check",
             f"--user-data-dir={profile}", "--dump-dom", "data:text/html," + page,
         ], 90)
+    if "GLib-GIO-CRITICAL" in result["stderr"]:
+        raise VerificationError("GSettings runtime initialization failed: " + result["stderr"][-4000:])
     for marker in ("chromix-smoke-ok", 'data-nix="passed"',
                    "<title>Chromix Nix smoke</title>"):
         if marker not in result["stdout"]:
