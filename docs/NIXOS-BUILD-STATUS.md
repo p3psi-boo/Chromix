@@ -724,3 +724,17 @@ python3 build/linux/unbundle/replace_gn_files.py --system-libraries flac libjpeg
     - `/home` 仍有约 558GiB 可用。正式构建保持 LLVM 21 / ThinLTO / official build，未降级目标。
     - 最终 `chromix-result` 尚不存在，编译、链接、安装及运行验证尚未完成；目标保持 active。
     - 后续从同一个 chromix-build.service 继续观察，不因单次观察超时另起重复构建。
+
+20. **运行时清单审计 / 不重编的外层打包**：对照 pinned nixpkgs browser.nix/common.nix
+    以及 Chromix/build/linux/package-linux.sh，发现初版 installPhase 漏装 libvulkan.so.1、
+    vk_swiftshader_icd.json，且缺少官方对 dlopen 库的 RPATH 收尾。源码编译仍正常进行。
+    增加独立外层 Nix 运行时包，保留现有 LLVM 编译派生为 passthru.unwrapped：
+    - 系统 vulkan-loader、源树 SwiftShader ICD 模板（只替换 library_path）；
+    - 给 chrome/libGLESv2 加包内路径及 libGL/vulkan-loader/pciutils RPATH；
+    - Chromix 原有字体资产及 XDG 可写字体缓存、两份许可证；
+    - 最终 launcher 指向外层 ELF，不再误用旧 unwrapped 的绝对链接；
+    - installCheck 验证三个可执行文件、资源、快照、locale 及 --version。
+    **关键证据**：调整后的 `unwrapped.drvPath` 仍精确等于正在构建的
+    `/nix/store/661bpim74p2ffizshvqpp8vcq0ikvy69-chromix-154.0.8037.97.drv`，
+    未改变其编译参数或重启编译。外层待该编译成功后再执行，尚未宣称运行验证通过。
+    注意 nixfmt 默认会替换符号链接：已恢复根路径链接，后续一律 --follow-symlinks。

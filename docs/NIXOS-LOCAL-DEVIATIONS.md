@@ -89,3 +89,6 @@ python sysroot、installer、chromeos 测试里，与本构建无关）。
 
 - 2026-10-18：`nix/chromix.nix` 的 preBuild 为 Dawn 的 Go 子进程配置
   `$TMPDIR/go-cache` / `$TMPDIR/go`，不使用不可写的 `/homeless-shelter`，保持离线依赖策略。
+- 2026-10-18：`nix/chromix.nix` 增加独立运行时包装层，补齐 Vulkan loader / SwiftShader
+  ICD、dlopen RPATH、字体和许可证，并设置产物 installCheck；原编译派生作为 unwrapped
+  暴露，实测 drvPath 未变化，因此不触发 Chromium 重编。根目录别名保持为符号链接。
