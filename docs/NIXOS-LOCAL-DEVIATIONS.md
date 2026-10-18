@@ -84,3 +84,8 @@ python sysroot、installer、chromeos 测试里，与本构建无关）。
   均保留为指向上述仓库内文件的符号链接，后续修改只有一份。
 - 前述 FHS 与 clang wrapper 仅为历史记录；当前 Nix 派生不使用它们。
 - 已有 `build/args.gn` 和 `build/prepare-ungoogled.sh` 改动保持原样，不包含在本次新增文件提交中。
+
+### 原生 Nix 后续修复
+
+- 2026-10-18：`nix/chromix.nix` 的 preBuild 为 Dawn 的 Go 子进程配置
+  `$TMPDIR/go-cache` / `$TMPDIR/go`，不使用不可写的 `/homeless-shelter`，保持离线依赖策略。

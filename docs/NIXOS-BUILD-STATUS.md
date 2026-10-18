@@ -699,3 +699,19 @@ python3 build/linux/unbundle/replace_gn_files.py --system-libraries flac libjpeg
   10 月 15 日最后一条日志停在 unpack；不把它当成仍在构建，更不当成构建成功。
 - 必要派生与文档归档到 Chromix Git 仓库；工作区根路径保留为符号链接。
   已有两个 build/ 文件的本地改动不混入本次提交。
+
+17. **必要内容已提交 / 正式进入编译**：提交 `08db2c9`，仅包含原生派生和两份文档；
+    两个原有 build/ 修改保留未暂存。16:02 UTC 重启正式构建，16:07 已完成约 974/56901 步，
+    实测包含 Clang 21 C++、Rust 1.98、bindgen 以及 DevTools TypeScript/esbuild actions。
+    先前 rustfmt 输入缺失已消失，原生工具链实际执行通过，不只是 gn gen/dry-run。
+    启动时部分外部 substituter TLS 失败后重试；另有 Nix .links 损坏链接被 daemon 自动清理，
+    均未阻断依赖获取和进入编译。没有因此全局修改 Nix 配置或修复整个 store。
+
+18. **Dawn Go 缓存写入失败（12,129/56,901）**：完整编译推进至 Tint generate_sources，
+    Go 报 `failed to initialize build cache at /homeless-shelter/.cache/go-build`。
+    根因是沙箱 HOME 故意不可写，调用 Go 的 Python 子进程没有可写 GOCACHE。
+    在派生 preBuild 中显式 export `GOCACHE=$TMPDIR/go-cache`、`GOPATH=$TMPDIR/go` 并创建目录。
+    在保留的失败副本、相同 Nix 环境中单独运行 generate-sources-gn.py 已返回 0，
+    并确认生成 enums.h；GOPROXY=off / GOTOOLCHAIN=local 保持，不引入联网构建。
+    复现日志 `~/.chromix-build/dawn-generator-test.log`。失败副本保留在
+    `/home/chromix-nix-build/nix-3288575-3693464837/build`。

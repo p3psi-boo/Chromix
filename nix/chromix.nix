@@ -397,6 +397,14 @@ stdenv.mkDerivation (finalAttrs: {
     NIX_LD_USE_RESPONSE_FILE = 1;
   };
 
+  # Nix intentionally gives builders an unwritable HOME. Dawn invokes Go via
+  # subprocess, so caches must live in the writable per-build TMPDIR instead.
+  preBuild = ''
+    export GOCACHE="$TMPDIR/go-cache"
+    export GOPATH="$TMPDIR/go"
+    mkdir -p "$GOCACHE" "$GOPATH"
+  '';
+
   buildPhase = lib.optionalString (!configureOnly) ''
     runHook preBuild
     TERM=dumb ninja -C ${buildPath} -j"''${NIX_BUILD_CORES:-$(nproc)}" \
