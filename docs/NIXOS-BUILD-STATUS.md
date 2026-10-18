@@ -784,3 +784,12 @@ python3 build/linux/unbundle/replace_gn_files.py --system-libraries flac libjpeg
     本轮编译 drv 为 `/nix/store/psrspzjjbndhbh0q8pvmwfq8lzpzj6p4-chromix-154.0.8037.97.drv`，
     外层包 drv 为 `/nix/store/7wxwkyh5rz64b6wkkj7dfkrjcs7jw8c9-chromix-154.0.8037.97.drv`。
     最终产物尚未出现，继续检查后续编译、链接与安装；完整目标不变。
+
+26. **最终验证入口准备（尚未当作浏览器已通过）**：新增 `nix/verify-package.py`。
+    与 portable ZIP 的严格目录验证器分开，按实际 Nix store 结构验证：
+    store 注册、三个 x86_64 ELF 及 SHA256、资源/locale/快照、运行库/ICD、字体与许可证，
+    然后执行真实 --version 和带同步 JavaScript DOM 标记的 headless 页面。
+    不传 --no-sandbox、不读取现有用户 profile，超时清理整个测试进程组；输出 JSON 证据。
+    当前只验证了脚本语法、非 store 路径拒绝、辅助进程正常退出与超时清理，
+    **没有以这些预检替代最终产物的运行测试**。待构建成功后执行：
+    `python3 Chromix/nix/verify-package.py --package ./chromix-result --expected-version 154.0.8037.97 > ~/.chromix-build/nix-package-verification.json`

@@ -95,3 +95,5 @@ python sysroot、installer、chromeos 测试里，与本构建无关）。
 - 2026-10-18：补齐原生 Nix postPatch 的全树 patchShebangs（解决 protoc 直接执行 Python
   插件的 /usr/bin/env 缺失），增加带输入一致性校验的可选原生 checkpoint；默认干净构建不变。
   新增 `nix/build-local.sh` 保存真实后台构建命令，状态及入口检查都在脚本内；旧 FHS 不参与。
+- 2026-10-18：新增 `nix/verify-package.py`，按 Nix store 产物结构检查三个 ELF、资源与
+  运行时文件，再运行版本及 JavaScript/DOM 冒烟测试；不会将预检或占位结果记成最终成功。
