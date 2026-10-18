@@ -100,3 +100,5 @@ python sysroot、installer、chromeos 测试里，与本构建无关）。
 - 2026-10-18：`nix/chromix.nix` 内联局部 GN 补丁，为 Linux OpenXR 的公开头文件和
   组件目标补上 Vulkan headers 的 public_deps；沿用已准备源码内的官方 headers 目标，
   不关闭功能，也不改变其他模块的全局 Nix include 环境。
+- 2026-10-18：原生派生安装 chrome_sandbox 改为普通可执行权限（755），与官方 Nix
+  构建阶段不设置 setuid 的方式一致；不在不可变 store 中通过 sudo 人工修补权限。

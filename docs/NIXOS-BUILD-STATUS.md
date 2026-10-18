@@ -821,3 +821,16 @@ python3 build/linux/unbundle/replace_gn_files.py --system-libraries flac libjpeg
     runtime_interface、api_layer_interface、manifest_file、loader_core 等 OpenXR 单元
     均出现成功 CXX 完成记录，证实 Vulkan public_deps 生效，而不是关闭该功能。
     当前服务 active/MainPID=91625，后续编译继续进行。最终包仍待链接、安装及实际运行测试。
+
+30. **完整编译与最终链接成功；安装阶段 setuid 权限失败（19:51 UTC）**：
+    正式日志出现 `[16125/16125] LINK ./chrome`，buildPhase 成功完成（56 分 19 秒）。
+    随后 install -Dm4755 chrome_sandbox 被 Nix 构建用户的权限约束拒绝。
+    按官方 browser.nix 的做法，派生只安装普通可执行文件，不在构建里设置 setuid；
+    改为 install -Dm755。没有使用 sudo 修改 store 产物或改变全局安全配置。
+    保留已完整链接的严格 Nix checkpoint：
+    `/nix/store/fv98h1armvalp0vkn2lfrinich9gvqjv-checkpoint-8id.tar.zst`（2.7GiB，展开 12.51GB），
+    origin `/nix/store/8idbxzqapmn2xjj0vc8x8ncjmsl7pdmq-chromix-154.0.8037.97.drv`，
+    来源目录 `/home/chromix-nix-build/nix-91696-3730539302/build/chromix-source`。
+    tar/zstd 校验通过，确认 out/Release 的 chrome、chrome_crashpad_handler、chrome_sandbox
+    三个真实可执行文件均存在；输入 manifest 匹配。build-checkpoint 指向最新归档。
+    本轮仅重跑必要失效任务及安装/外层打包，最终版本与 headless 测试仍待执行。

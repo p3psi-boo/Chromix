@@ -499,7 +499,7 @@ let
           install -Dm755 ${buildPath}/chrome_crashpad_handler \
             $out/libexec/chromix/chrome_crashpad_handler
           if [ -f ${buildPath}/chrome_sandbox ]; then
-            install -Dm4755 ${buildPath}/chrome_sandbox $out/libexec/chromix/chrome_sandbox
+            install -Dm755 ${buildPath}/chrome_sandbox $out/libexec/chromix/chrome_sandbox
           fi
 
           # Resource bundles and the data files Chrome mmaps at startup.
