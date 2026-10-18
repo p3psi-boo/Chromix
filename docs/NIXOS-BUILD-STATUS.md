@@ -738,3 +738,11 @@ python3 build/linux/unbundle/replace_gn_files.py --system-libraries flac libjpeg
     `/nix/store/661bpim74p2ffizshvqpp8vcq0ikvy69-chromix-154.0.8037.97.drv`，
     未改变其编译参数或重启编译。外层待该编译成功后再执行，尚未宣称运行验证通过。
     注意 nixfmt 默认会替换符号链接：已恢复根路径链接，后续一律 --follow-symlinks。
+
+21. **外层运行时预检（不替代最终浏览器测试）**：从当前活跃沙箱读取实际 GN 生成的
+    vk_swiftshader_icd.json，与外层模板替换后的 JSON 逐字段比较完全一致：
+    library_path=./libvk_swiftshader.so、api_version=1.0.5。
+    已求值的 installPhase/postFixup/installCheckPhase 三段脚本 bash -n 全部通过。
+    使用 Nix 已安装的 fontconfig 与实际入 store 的字体目录进行 fc-match，Arial 匹配通过，
+    缓存落入指定 XDG_CACHE_HOME，而不是 store。证据在
+    `~/.chromix-build/runtime-phase-check/`。正式 Chromium 编译仍为同一 PID，未重启。
