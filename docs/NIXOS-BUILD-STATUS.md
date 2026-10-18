@@ -1,5 +1,10 @@
 # Chromix 内核构建：状态与续做说明
 
+> **2026-10-18 最终状态：原生 Nix 构建、打包和真实浏览器验证均已通过。**
+> 启动：`~/rev-egolite/chromix-result/bin/chromix`。版本：`154.0.8037.97`。
+> 现行实现：`Chromix/nix/chromix.nix`（根目录 chromix.nix 为其链接）。
+> 第 1–11 轮 FHS 方案仅保留作历史记录；最终验收见第十二轮末尾及 `NIXOS-PACKAGE-VERIFICATION.json`。
+
 ## 已完成（可复现）
 
 | 步骤 | 产物 | 状态 |
@@ -847,3 +852,57 @@ python3 build/linux/unbundle/replace_gn_files.py --system-libraries flac libjpeg
     对照官方补齐外层 buildInputs（gsettings-desktop-schemas/glib/gtk3/gtk4/adwaita-icon-theme）
     与 launcher 的 XDG_DATA_DIRS 前缀；验证器增加对应 critical 提示的失败检查。
     复核 unwrapped drvPath 前后一致，因此只重建外层运行时包，不重复 Chromium 编译。
+
+32. **最终运行时包与复测通过（20:16 UTC）**：提交 `af21635` 后仅外层重建。
+    - 最终产物：`/nix/store/g6jyja2dzrr9jcs66cs3fndvh6rmdr33-chromix-154.0.8037.97`
+    - 入口：`/home/bubu/rev-egolite/chromix-result/bin/chromix`
+    - 编译/安装底层产物：`/nix/store/8f98h37iabhfs6gdy0z88kai1n76dn1j-chromix-154.0.8037.97`
+    - 版本：`Chromium 154.0.8037.97`；最终 Nix service/exit 文件均为 0。
+    - 三个实际 x86_64 ELF：chrome（530,058,528 bytes）、chrome_crashpad_handler（3,661,496 bytes）、
+      chrome_sandbox（19,496 bytes）。SHA256 与完整验收结果归档到 `docs/NIXOS-PACKAGE-VERIFICATION.json`。
+    - JavaScript 改写 DOM 标记及 document.title 的真实 headless 测试通过，stderr 为空，
+      没有传递 --no-sandbox。旧 GSettings critical 提示已消失。
+    - 最终 package 的 nix-store --verify-path 返回 0；闭包为 283 个 store 路径。
+
+33. **验收发现旧配置证据受损，已更新**：Oct 15 的旧配置输出
+    xrqdbnq.../generated/build.ninja 被改成 0 bytes，`nix-store --verify-path` 报实际 NAR hash
+    与注册 hash 不同。何时、由哪个进程改写尚未确定；不以该旧路径作为本次验收证据。
+    只针对当前任务刷新配置证据：使用最终派生、已验证 sourceSnapshot，不使用 buildCheckpoint，
+    独立完成 bootstrap/patch/gn gen/configureOnly，命令退出 0。
+    新 `chromix-configure-result` 指向
+    `/nix/store/bg7w25kmdccdjlqlwm6n3kr2pnhy5aar-chromix-154.0.8037.97`，
+    build.ninja 为 7.8MiB，GN 输出 `Done. Made 34876 targets from 4974 files`。
+    新配置证据与最终浏览器包均重新通过 nix-store --verify-path；
+    已准备源码 gbhrb9... 也独立通过完整 NAR 校验，未发现源输入损坏。
+    配置刷新日志 `~/.chromix-build/nix-configure-final.log`，源码与旧配置完整性检查日志分别是
+    `source-integrity.log` / `old-configure-integrity.log`。未对整个 store 做全局修复。
+
+## 第十二轮最终验收（已完成）
+
+| 原任务 | 当前证据 | 结论 |
+|---|---|---|
+| 小求值和固定 nixpkgs | pname=chromix；编译 stdenv clang-wrapper-21.1.8；指定 store pin | 通过 |
+| 过滤旧 out/ 和临时 GN 目录 | cleanSourceWith 过滤器；已验证 gbhrb9... 输入无 out/；原树 out/Chromix/gn 保留 | 通过 |
+| GN 配置 | 最终配置无 checkpoint 独立生成 34,876 targets；新 build.ninja 非空且 NAR 校验通过 | 通过 |
+| 完整三目标构建与安装 | 实际 LINK ./chrome；三个 ELF 已安装；Nix 构建及 installCheck 退出 0 | 通过 |
+| 原生工具链与离线构建 | LLVM/unbundle/host_toolchain/use_sysroot=false；Go proxy 关闭；依赖由 Nix 管理 | 通过 |
+| 记录和提交本地修复 | 本节逐项症状/原因/修复；NIXOS-LOCAL-DEVIATIONS.md；Git 分步提交 | 通过 |
+| 真实产物运行验证 | 版本、headless JavaScript/DOM、资源/ICD/字体/许可证；stderr 为空；JSON 归档 | 通过 |
+
+复现完整打包（复用同源原生 Nix checkpoint）：
+
+```bash
+cd /home/bubu/rev-egolite
+nix build -f chromix.nix \
+  --argstr sourceSnapshot /nix/store/gbhrb9map7afqhgj1gqgcs7bczx6hcy5-chromix-source \
+  --argstr buildCheckpoint /nix/store/fv98h1armvalp0vkn2lfrinich9gvqjv-checkpoint-8id.tar.zst \
+  --out-link chromix-result --cores 64 --max-jobs 8 \
+  --option build-dir /home/chromix-nix-build -L --keep-failed
+python3 Chromix/nix/verify-package.py --package ./chromix-result \
+  --expected-version 154.0.8037.97
+./chromix-result/bin/chromix --version
+```
+
+本次 checkpoint 的所有编译和链接均来源于实际 Nix 沙箱，并有输入 manifest 校验；
+没有复用 FHS 编译产物。`buildCheckpoint` 默认 null，不传该参数的正常源码构建路径仍保留。
+当前构建、打包和验收所需工作均已完成；失败目录与 checkpoint 保留用于追溯，未删除原树数据。

@@ -1,0 +1,26 @@
+{
+  "arch": "x86_64-linux",
+  "binaries": {
+    "chrome": {
+      "bytes": 530058528,
+      "sha256": "cf33233e1ef846999cf4f8bbdffe7773f7b0076301f30fbb27fd10425096a46d"
+    },
+    "chrome_crashpad_handler": {
+      "bytes": 3661496,
+      "sha256": "bd602d34d8e4416f2d78919978b55e24652bb5c1d3a6ac0c16240100db49fff7"
+    },
+    "chrome_sandbox": {
+      "bytes": 19496,
+      "sha256": "4807c619ff104f0dc06523cfa23cfe4846fab284bd5f29225e45dfac4729c6e0"
+    }
+  },
+  "package": "/nix/store/g6jyja2dzrr9jcs66cs3fndvh6rmdr33-chromix-154.0.8037.97",
+  "runtime": {
+    "headless_dom": "passed",
+    "javascript": "passed",
+    "no_sandbox_flag_passed": false,
+    "stderr": ""
+  },
+  "status": "passed",
+  "version": "Chromium 154.0.8037.97"
+}

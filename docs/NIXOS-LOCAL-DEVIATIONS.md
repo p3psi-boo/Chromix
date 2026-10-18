@@ -105,3 +105,6 @@ python sysroot、installer、chromeos 测试里，与本构建无关）。
 - 2026-10-18：外层 Nix launcher 按官方补齐 GSettings schema / 图标目录的 XDG_DATA_DIRS，
   消除首次真实 headless 测试发现的 GLib-GIO-CRITICAL；验证器同步将该错误列为失败。
   已核对原编译 derivation 未变，仅重建运行时包装层。
+- 2026-10-18：最终验证结果归档为 `docs/NIXOS-PACKAGE-VERIFICATION.json`，包含真实 store
+  产物地址、三个 ELF 的大小/哈希及版本/JavaScript/DOM 结果。BUILD-STATUS.md 增加最终验收
+  汇总，旧 FHS 内容明确标注为历史。另刷新了受损的旧 GN 配置证据，不改动原始源码。
