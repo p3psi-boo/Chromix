@@ -773,3 +773,14 @@ python3 build/linux/unbundle/replace_gn_files.py --system-libraries flac libjpeg
     原 `~/.chromix-build/run-nix-build.sh` 改为指向该已跟踪脚本的链接。
     运行方式仍是 systemd 用户服务后台运行、64 并发、/home/chromix-nix-build 磁盘沙箱目录。
     当前脚本默认构建的是带运行时层的完整包，不是仅 unwrapped。
+
+25. **Checkpoint 恢复及 shebang 修复已在正式沙箱验证（18:05 UTC）**：
+    日志输出 `Reusing native Nix checkpoint from ...661bpim...drv`，GN bootstrap 无需重编，
+    gn gen 仍生成 34,876 targets。Ninja 待做图从完整 56,901 步降至约 27,294 步，
+    后续动态收敛至 26,771；这不是裁减构建目标，而是正常复用已完成对象。
+    原失败目标 `traces_internals:config_proto_gen` 在本轮第 197 步成功完成，
+    当前已进入后续 Blink WebAudio 与 Chromium 组件编译。
+    unit active/MainPID=3998182，ninja PID=4051719；仍是同一套原生 LLVM/unbundle 工具链。
+    本轮编译 drv 为 `/nix/store/psrspzjjbndhbh0q8pvmwfq8lzpzj6p4-chromix-154.0.8037.97.drv`，
+    外层包 drv 为 `/nix/store/7wxwkyh5rz64b6wkkj7dfkrjcs7jw8c9-chromix-154.0.8037.97.drv`。
+    最终产物尚未出现，继续检查后续编译、链接与安装；完整目标不变。
