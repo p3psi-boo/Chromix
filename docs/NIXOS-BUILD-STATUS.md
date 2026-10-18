@@ -793,3 +793,23 @@ python3 build/linux/unbundle/replace_gn_files.py --system-libraries flac libjpeg
     当前只验证了脚本语法、非 store 路径拒绝、辅助进程正常退出与超时清理，
     **没有以这些预检替代最终产物的运行测试**。待构建成功后执行：
     `python3 Chromix/nix/verify-package.py --package ./chromix-result --expected-version 154.0.8037.97 > ~/.chromix-build/nix-package-verification.json`
+
+27. **OpenXR Vulkan headers 依赖遗漏（恢复后 11,931 步附近）**：多个 OpenXR .cpp 报
+    xr_dependencies.h:80: `vulkan/vulkan.h file not found`。头文件并非缺少，已在
+    `third_party/vulkan-headers/src/include`，而非旧 vulkan-deps 子目录。
+    GN 的 openxr_core_headers/openxr 公开 XR_USE_GRAPHICS_API_VULKAN，却未公开依赖 Vulkan
+    headers 目标，导致自身及头文件消费者缺少 include config。
+    添加局部 GN 补丁：Linux 下这两个目标 public_deps 指向现成
+    `//third_party/vulkan-headers/src:vulkan_headers`。不关闭 OpenXR，不拼全局 include path，
+    不额外注入可能改变所有编译单元环境的 system Vulkan SDK；补丁 dry-run 通过。
+    公共依赖的 include/config 变化由 GN/Ninja 追踪，受影响的消费者会正常重编。
+
+28. **更新严格沙箱来源 checkpoint**：来源为本轮失败 Nix build
+    `/nix/store/psrspzjjbndhbh0q8pvmwfq8lzpzj6p4-chromix-154.0.8037.97.drv`，
+    保存已完成的前约 43k 步，来源目录 `/home/chromix-nix-build/nix-3998250-3655673972/build/chromix-source`。
+    首次普通用户归档遇到部分 0600 生成文件/0700 ThinLTO 缓存权限，tar 退出 2；该不完整归档
+    没有选为构建输入。随后 sudo 只读归档该已停止的失败目录，tar 返回 0、zstd --test 通过。
+    使用完整归档 `/nix/store/gmi8nx95r17iyqqyxniwcvzxm0lpjjk1-checkpoint-psrsp-root.tar.zst`
+    （约 1.6GiB，展开 8.29GB），GC root `~/.chromix-build/checkpoint-psrsp`，
+    build-checkpoint 别名已指向它。source/stdenv/GN flags/targets manifest 仍逐项匹配。
+    未把宿主机试编译对象混入 checkpoint；归档来自实际 Nix 沙箱的 out/。

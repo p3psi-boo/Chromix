@@ -97,3 +97,6 @@ python sysroot、installer、chromeos 测试里，与本构建无关）。
   新增 `nix/build-local.sh` 保存真实后台构建命令，状态及入口检查都在脚本内；旧 FHS 不参与。
 - 2026-10-18：新增 `nix/verify-package.py`，按 Nix store 产物结构检查三个 ELF、资源与
   运行时文件，再运行版本及 JavaScript/DOM 冒烟测试；不会将预检或占位结果记成最终成功。
+- 2026-10-18：`nix/chromix.nix` 内联局部 GN 补丁，为 Linux OpenXR 的公开头文件和
+  组件目标补上 Vulkan headers 的 public_deps；沿用已准备源码内的官方 headers 目标，
+  不关闭功能，也不改变其他模块的全局 Nix include 环境。

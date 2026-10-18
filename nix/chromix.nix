@@ -212,18 +212,45 @@ let
             && !(lib.hasPrefix ".chromix-gn-" top);
         };
 
-    patches = map (name: chromiumPatches + "/${name}") (
-      [
-        "chromium-150-rust.patch"
-        "chromium-136-nodejs-assert-minimal-version-instead-of-exact-match.patch"
-        "chromium-151-dawn-use-Go-from-PATH.patch"
-        "chromium-142-bytemuck-rust-1.95.patch"
-      ]
-      ++ lib.optionals (lib.versionOlder llvmPackages.llvm.version "23") [
-        "chromium-147-llvm-22.patch"
-        "chromium-153-llvm-22.patch"
-      ]
-    );
+    patches =
+      map (name: chromiumPatches + "/${name}") (
+        [
+          "chromium-150-rust.patch"
+          "chromium-136-nodejs-assert-minimal-version-instead-of-exact-match.patch"
+          "chromium-151-dawn-use-Go-from-PATH.patch"
+          "chromium-142-bytemuck-rust-1.95.patch"
+        ]
+        ++ lib.optionals (lib.versionOlder llvmPackages.llvm.version "23") [
+          "chromium-147-llvm-22.patch"
+          "chromium-153-llvm-22.patch"
+        ]
+      )
+      ++ [
+        (pkgs.writeText "openxr-linux-vulkan-headers.patch" ''
+          --- a/third_party/openxr/BUILD.gn
+          +++ b/third_party/openxr/BUILD.gn
+          @@ -30,6 +30,9 @@
+                 "src/src/common/hex_and_handles.h",
+               ]
+           
+          +    if (is_linux) {
+          +      public_deps = [ "//third_party/vulkan-headers/src:vulkan_headers" ]
+          +    }
+               public_configs = [ ":config" ]
+             }
+           
+          @@ -157,6 +160,9 @@
+           
+               deps = [ "//third_party/jsoncpp" ]
+           
+          +    if (is_linux) {
+          +      public_deps = [ "//third_party/vulkan-headers/src:vulkan_headers" ]
+          +    }
+               public_configs = [ ":config" ]
+           
+               defines = [
+        '')
+      ];
     hardeningDisable = [ "strictflexarrays1" ];
 
     # Chromium's build scripts call gn/ninja/python directly; nixpkgs' list is the
