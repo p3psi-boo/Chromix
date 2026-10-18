@@ -813,3 +813,11 @@ python3 build/linux/unbundle/replace_gn_files.py --system-libraries flac libjpeg
     （约 1.6GiB，展开 8.29GB），GC root `~/.chromix-build/checkpoint-psrsp`，
     build-checkpoint 别名已指向它。source/stdenv/GN flags/targets manifest 仍逐项匹配。
     未把宿主机试编译对象混入 checkpoint；归档来自实际 Nix 沙箱的 out/。
+
+29. **OpenXR 修复已在正式沙箱验证（18:56 UTC）**：提交 `87cc4e9`。
+    恢复 psrsp checkpoint 的 manifest 校验通过，待做图约 16,634 步；源码目标总量及
+    chrome/chrome_crashpad_handler/chrome_sandbox 三目标未改变。
+    先前失败的 filesystem_utils、loader_properties、xr_generated_loader、loader_instance、
+    runtime_interface、api_layer_interface、manifest_file、loader_core 等 OpenXR 单元
+    均出现成功 CXX 完成记录，证实 Vulkan public_deps 生效，而不是关闭该功能。
+    当前服务 active/MainPID=91625，后续编译继续进行。最终包仍待链接、安装及实际运行测试。
