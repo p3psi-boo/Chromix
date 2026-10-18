@@ -92,3 +92,6 @@ python sysroot、installer、chromeos 测试里，与本构建无关）。
 - 2026-10-18：`nix/chromix.nix` 增加独立运行时包装层，补齐 Vulkan loader / SwiftShader
   ICD、dlopen RPATH、字体和许可证，并设置产物 installCheck；原编译派生作为 unwrapped
   暴露，实测 drvPath 未变化，因此不触发 Chromium 重编。根目录别名保持为符号链接。
+- 2026-10-18：补齐原生 Nix postPatch 的全树 patchShebangs（解决 protoc 直接执行 Python
+  插件的 /usr/bin/env 缺失），增加带输入一致性校验的可选原生 checkpoint；默认干净构建不变。
+  新增 `nix/build-local.sh` 保存真实后台构建命令，状态及入口检查都在脚本内；旧 FHS 不参与。

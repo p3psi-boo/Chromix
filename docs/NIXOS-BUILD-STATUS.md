@@ -746,3 +746,30 @@ python3 build/linux/unbundle/replace_gn_files.py --system-libraries flac libjpeg
     使用 Nix 已安装的 fontconfig 与实际入 store 的字体目录进行 fc-match，Arial 匹配通过，
     缓存落入指定 XDG_CACHE_HOME，而不是 store。证据在
     `~/.chromix-build/runtime-phase-check/`。正式 Chromium 编译仍为同一 PID，未重启。
+
+22. **31,361/56,901 步遇到 protoc 插件 shebang**：protoc 直接 exec
+    `tools/protoc_wrapper/protoc-gen-ts_proto.py`，文件存在且可执行，但其
+    `#!/usr/bin/env python3` 在 Nix 沙箱中找不到 /usr/bin/env，因此被报告为 program not found。
+    对照官方 common.nix 补齐 postPatch 的 patchShebangs --build .，同时保留官方对
+    native_client / harfbuzz makefile / run_deno 的准备处理；不再只修 node/tsc/esbuild。
+    在失败副本、同一 Nix 原生环境执行完整 postPatch 后重跑原始 protoc_wrapper 命令，
+    返回 0，并生成 1.2MB 的 perfetto_config.ts。日志 `~/.chromix-build/protoc-plugin-test.log`。
+
+23. **显式原生 Nix checkpoint（不混入旧 FHS out）**：为避免重编已完成的约 31k 步，
+    从刚刚失败的 Nix 沙箱副本只归档 out/，新增可选 buildCheckpoint 参数（默认 null）。
+    archive 加入输入 manifest，恢复时强制核对 source store path、stdenv、GN flags SHA256
+    和完整三个构建目标，GN 再生成、Ninja 正常做依赖与命令失效检查。
+    - 来源：`/nix/store/661bpim74p2ffizshvqpp8vcq0ikvy69-chromix-154.0.8037.97.drv`
+    - 来源目录：`/home/chromix-nix-build/nix-3445914-2203529230/build/chromix-source`
+    - 实际 args.gn 与上述 derivation 的 configurePhase GN 参数解析比对一致。
+    - 原 out/ 6.6GiB，tar.zst 约 1.3GiB；Nix store 显式输入：
+      `/nix/store/rr0glb2j6qzzylgw7fdn8qgyac3l1n3a-checkpoint-661.tar.zst`
+    - GC root：`~/.chromix-build/build-checkpoint`。
+    - 主源码过滤规则不变，out/ 依旧排除；默认不传 checkpoint 仍从源码干净构建。
+    - 归档/manifest 证据在 `~/.chromix-build/checkpoints/`；没有复用旧 FHS/包装 clang 产物。
+
+24. **构建入口归档**：新增 `nix/build-local.sh`，发现 state 目录中已固定的 source/checkpoint
+    时显式传给 chromix.nix；日志打印选择结果，EXIT trap 记录真实状态，最终检查 --version。
+    原 `~/.chromix-build/run-nix-build.sh` 改为指向该已跟踪脚本的链接。
+    运行方式仍是 systemd 用户服务后台运行、64 并发、/home/chromix-nix-build 磁盘沙箱目录。
+    当前脚本默认构建的是带运行时层的完整包，不是仅 unwrapped。

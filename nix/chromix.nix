@@ -35,6 +35,8 @@
   configureOnly ? false,
   # Reuse a previously filtered store snapshot while iterating on build flags.
   sourceSnapshot ? null,
+  # Optional tar.zst of out/ from this same native Nix build, never an FHS out/.
+  buildCheckpoint ? null,
 }:
 
 let
@@ -351,17 +353,58 @@ let
                  p.read_text())
       p.write_text(s)
       PY_NORMALIZE_TOOLS
+
+      # Protoc executes plugins directly, so Python's shebang must also work
+      # without /usr/bin/env. Match nixpkgs' build-time shebang normalization.
+      if [ -e native_client/SConstruct ]; then
+        substituteInPlace native_client/SConstruct --replace-warn '#! -*- python -*-' ""
+      fi
+      if [ -e third_party/harfbuzz-ng/src/src/update-unicode-tables.make ]; then
+        substituteInPlace third_party/harfbuzz-ng/src/src/update-unicode-tables.make \
+          --replace-warn '/usr/bin/env -S make -f' '/usr/bin/make -f'
+      fi
+      for script in third_party/webgpu-cts/src/tools/run_deno \
+        third_party/dawn/third_party/webgpu-cts/tools/run_deno; do
+        if [ -e "$script" ]; then chmod -x "$script"; fi
+      done
+      patchShebangs --build .
     '';
 
     # gn from the source tree, since Chromium's gn must match the tree it
     # generates for. Bootstrapping this is only possible now that the toolchain
     # and libc are consistent — it is the step that used to fail on the old setup.
-    preConfigure = lib.optionalString bootstrapGn ''
-      mkdir -p out/gn-bootstrap
-      python3 tools/gn/bootstrap/bootstrap.py --skip-generate-buildfiles \
-        -j "$NIX_BUILD_CORES" -o "$PWD/out/gn-bootstrap/gn"
-      export PATH="$PWD/out/gn-bootstrap:$PATH"
-    '';
+    preConfigure =
+      lib.optionalString (buildCheckpoint != null) ''
+        tar --zstd -xf ${builtins.storePath buildCheckpoint} --no-same-owner
+        python3 - <<'PY_CHECKPOINT'
+        import json
+        from pathlib import Path
+        manifest = json.loads(Path("checkpoint-manifest.json").read_text())
+        expected = ${
+          builtins.toJSON {
+            schema = 1;
+            source = toString finalAttrs.src;
+            gn_flags_sha256 = builtins.hashString "sha256" gnFlags;
+            stdenv = toString stdenv;
+            targets = [
+              "chrome"
+              "chrome_crashpad_handler"
+              "chrome_sandbox"
+            ];
+          }
+        }
+        actual = {key: manifest.get(key) for key in expected}
+        if actual != expected:
+            raise SystemExit("Checkpoint inputs differ: " + repr((actual, expected)))
+        print("Reusing native Nix checkpoint from", manifest["origin_derivation"])
+        PY_CHECKPOINT
+      ''
+      + lib.optionalString bootstrapGn ''
+        mkdir -p out/gn-bootstrap
+        python3 tools/gn/bootstrap/bootstrap.py --skip-generate-buildfiles \
+          -j "$NIX_BUILD_CORES" -o "$PWD/out/gn-bootstrap/gn"
+        export PATH="$PWD/out/gn-bootstrap:$PATH"
+      '';
 
     configurePhase = ''
       set -o pipefail
