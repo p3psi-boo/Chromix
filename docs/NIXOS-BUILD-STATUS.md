@@ -715,3 +715,12 @@ python3 build/linux/unbundle/replace_gn_files.py --system-libraries flac libjpeg
     并确认生成 enums.h；GOPROXY=off / GOTOOLCHAIN=local 保持，不引入联网构建。
     复现日志 `~/.chromix-build/dawn-generator-test.log`。失败副本保留在
     `/home/chromix-nix-build/nix-3288575-3693464837/build`。
+
+19. **修复后已跨过 Dawn 失败点，继续编译（2026-10-18 16:58 UTC）**：
+    - 提交 `16fdf57` 固化 Go 缓存修复。
+    - 正式沙箱日志中 Tint generate_sources 在 12,322/56,901 成功完成。
+    - 当前已推进至约 21,593/56,901（V8），最新日志未出现 FAILED/error。
+    - 实测服务 active，MainPID=3445835；不是仅依据日志或 running 状态文件判断。
+    - `/home` 仍有约 558GiB 可用。正式构建保持 LLVM 21 / ThinLTO / official build，未降级目标。
+    - 最终 `chromix-result` 尚不存在，编译、链接、安装及运行验证尚未完成；目标保持 active。
+    - 后续从同一个 chromix-build.service 继续观察，不因单次观察超时另起重复构建。
