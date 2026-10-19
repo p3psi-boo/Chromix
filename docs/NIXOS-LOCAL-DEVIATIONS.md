@@ -108,3 +108,15 @@ python sysroot、installer、chromeos 测试里，与本构建无关）。
 - 2026-10-18：最终验证结果归档为 `docs/NIXOS-PACKAGE-VERIFICATION.json`，包含真实 store
   产物地址、三个 ELF 的大小/哈希及版本/JavaScript/DOM 结果。BUILD-STATUS.md 增加最终验收
   汇总，旧 FHS 内容明确标注为历史。另刷新了受损的旧 GN 配置证据，不改动原始源码。
+
+### 2026-10-19：可用补丁移植
+
+- 新增 nix/patches/：独立 chromix 默认用户目录、成套 FFmpeg/Chromium HEVC 软件解码、
+  performanceBuild=true 才启用的 x86-64-v3 / O3 / 增强 ThinLTO；精确来源和许可见该目录 README。
+- 保留颜色空间检查和 Uxr codec 限制；不改变浮点 contraction、libc++ hardening 或默认 WebRTC 编码开关。
+- 旧内联 OpenXR 修复外置并从真实输入生成 diff；两个完整补丁栈稀疏测试通过。
+- 原固定 nixpkgs 别名消失，改成现存 b54...-source；LLVM/Rust 版本及关键官方文件保持一致。
+- checkpoint 升级 schema 2 绑定补丁内容，取消默认隐式加载旧归档。
+- build-variants.sh 分离旧基线、新通用版和 AVX2 产物；新增真实 HEVC/目录/CDP 验证器与自制视频。
+- 只在 Nix 沙箱副本应用 overlay，不改 ~/.chromix-build/src 或原 224 项跨平台补丁。
+- 原有 build/args.gn 与 build/prepare-ungoogled.sh 两处未提交修改继续保留，不混入本轮提交。

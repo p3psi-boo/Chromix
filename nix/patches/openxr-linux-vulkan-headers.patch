@@ -1,0 +1,22 @@
+--- a/third_party/openxr/BUILD.gn
++++ b/third_party/openxr/BUILD.gn
+@@ -30,6 +30,9 @@
+       "src/src/common/hex_and_handles.h",
+     ]
+ 
++    if (is_linux) {
++      public_deps = [ "//third_party/vulkan-headers/src:vulkan_headers" ]
++    }
+     public_configs = [ ":config" ]
+   }
+ 
+@@ -157,6 +160,9 @@
+ 
+     deps = [ "//third_party/jsoncpp" ]
+ 
++    if (is_linux) {
++      public_deps = [ "//third_party/vulkan-headers/src:vulkan_headers" ]
++    }
+     public_configs = [ ":config" ]
+ 
+     defines = [

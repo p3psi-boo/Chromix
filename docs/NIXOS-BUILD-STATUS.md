@@ -4,6 +4,9 @@
 > 启动：`~/rev-egolite/chromix-result/bin/chromix`。版本：`154.0.8037.97`。
 > 现行实现：`Chromix/nix/chromix.nix`（根目录 chromix.nix 为其链接）。
 > 第 1–11 轮 FHS 方案仅保留作历史记录；最终验收见第十二轮末尾及 `NIXOS-PACKAGE-VERIFICATION.json`。
+>
+> **2026-10-19 后续：独立用户目录、HEVC 软件解码和可选 AVX2 版正在重新构建验证。**
+> 原 chromix-result 和旧验收 JSON 保留为基线；新产物不沿用旧报告作为功能通过的证据。
 
 ## 已完成（可复现）
 
@@ -889,7 +892,9 @@ python3 build/linux/unbundle/replace_gn_files.py --system-libraries flac libjpeg
 | 记录和提交本地修复 | 本节逐项症状/原因/修复；NIXOS-LOCAL-DEVIATIONS.md；Git 分步提交 | 通过 |
 | 真实产物运行验证 | 版本、headless JavaScript/DOM、资源/ICD/字体/许可证；stderr 为空；JSON 归档 | 通过 |
 
-复现完整打包（复用同源原生 Nix checkpoint）：
+基线历史复现命令（对应提交 8cb8db5，复用同源原生 Nix checkpoint）：
+
+当前新补丁派生使用 schema 2，拒绝下面的 schema-1 checkpoint；新构建入口见后续小节。
 
 ```bash
 cd /home/bubu/rev-egolite
@@ -906,3 +911,78 @@ python3 Chromix/nix/verify-package.py --package ./chromix-result \
 本次 checkpoint 的所有编译和链接均来源于实际 Nix 沙箱，并有输入 manifest 校验；
 没有复用 FHS 编译产物。`buildCheckpoint` 默认 null，不传该参数的正常源码构建路径仍保留。
 当前构建、打包和验收所需工作均已完成；失败目录与 checkpoint 保留用于追溯，未删除原树数据。
+
+## 第十二轮后续：可用补丁移植与双版本构建（2026-10-19）
+
+34. **补丁范围**：参考 RobRich999/Chromium_Clang 提交
+    `27eac50e18b2ea401424e976615fd678114e1564`，没有整包套用。
+    `nix/patches/` 新增 Linux 独立 chromix 用户目录、完整 HEVC 软件解码链和可选性能补丁。
+    FFmpeg 参考 StaZhu 提交 `027325135a14413f54cbd8bdbfcfbc2ce3ba3eb2`，附 MIT 许可。
+    原 CONFIG_HEVC_DECODER/PARSER 都为 0，故同时补 C/NASM 配置、注册和 HEVC 源文件，
+    保留颜色空间检查、原有 Uxr codec 限制和硬件后端回退，不虚构编码支持。
+    performanceBuild=true 才启用 C/C++/Rust x86-64-v3、generic tuning、O3 和增强 ThinLTO。
+    不引入 FP contraction、libc++ hardening、Polly、全局关警告和 deb/rpm 改动。
+    不重复已有 MV2 支持；不修改跨平台 224 项 series 和原始准备源码。
+
+35. **原固定 nixpkgs 路径消失**：qwxy08...-b54...-source 已不存在，改用本机现存
+    `/nix/store/b54nhac0czv6fq1wr72gna7vkjxfnbk9-source`。与恢复副本对照 common.nix、
+    LLVM 补丁和版本文件一致；求值仍是 LLVM 21.1.8 / Rust 1.98.1，不升级工具链。
+    大源码求值显式复用已过滤的 gbhrb9... sourceSnapshot，避免反复扫描复制 9.4GiB。
+
+36. **额外 cache HTTP 503**：系统配置的 attic.xuyh0120.win 查询反复重试。
+    runner 显式使用 https://cache.nixos.org，不修改系统 Nix 配置；源码沙箱仍离线构建。
+
+37. **OpenXR 补丁外置缩进错误**：初次从 Nix 字符串外置时上下文空格不匹配，两个 hunk
+    在稀疏测试和首份配置 derivation 中失败。已从实际输入重新生成 diff，保持两个
+    public_deps 的行为不变。修复后两版完整官方 + 本地补丁栈按顺序 --fuzz=0 全部通过。
+    失败配置日志保留为 updates-20261019/configure-portable-initial.log。
+
+38. **checkpoint 补丁绑定**：旧 schema 1 不校验 source overlay 内容。
+    改成 schema 2，增加所有补丁内容 SHA256；runner 不再隐式加载旧 checkpoint。
+    当前双版本从源码重编，不复用旧最终 ELF。
+
+39. **测试**：nix/tests/test_local_patches.py 两项测试通过，覆盖两套完整补丁栈、
+    HEVC C/NASM 配置/注册/源文件、codec 限制、浮点及 hardening 不变和不同补丁指纹。
+    新增自制 CC0 Main/Main10 视频、hvcC/key sample/哈希；verify-features.mjs 使用
+    Node 内置 WebSocket/CDP 验证真实默认目录、software-preferred WebCodecs 解码像素、
+    HTML video、能力查询和禁用策略，不传 --no-sandbox。语法检查不算运行验收。
+
+40. **当前执行入口**：nix/build-variants.sh 先验证两版 GN，再顺序编译和验证两版。
+    任一步失败即停止；不自动替换原 chromix-result。
+    - 旧基线：chromix-result；新通用版：chromix-next-result；性能版：chromix-avx2-result。
+    - 状态/日志：~/.chromix-build/updates-20261019/{phase,batch.exit,build.log}。
+    - 两版各自的 package-verification.json / feature-verification.json 在 portable/、avx2/ 下。
+    - 精确来源、许可和作用见 nix/patches/README.md。
+
+```bash
+CHROMIX_SOURCE_SNAPSHOT=/nix/store/gbhrb9map7afqhgj1gqgcs7bczx6hcy5-chromix-source \
+  bash Chromix/nix/build-variants.sh
+tail -f ~/.chromix-build/updates-20261019/build.log
+```
+
+**新功能当前状态：源码检查通过，GN/新包构建和运行验收进行中；不宣称已完成。**
+
+41. **验证器的 headless 路径假设修正**：用旧包做反例发现，M154 headless 不直接使用
+    默认目录，而由 GetDefaultUserDataDirectory 派生 `chromium-headless/scoped_dir*`。
+    此外 Crash Reports 会独立创建品牌级 chromium 目录。验证器改为查找新
+    `chromix-headless/scoped_dir*/DevToolsActivePort`，拒绝旧目录中的实际 profile 状态，
+    不把辅助目录存在当失败。两个真实旧浏览器反例测试均通过：旧默认目录被拒绝；
+    强制测试目录后旧 HEVC 后端仍被拒绝。CDP/安全 loopback 页面链路已实际执行，
+    这不是新包功能验收。新增视频本身也用 Nix FFmpeg 真实解码得到预期红色像素。
+
+42. **新通用版 GN 已通过**：生成 34,876 targets / 4,974 files，build.ninja 7.8MiB，
+    配置输出 `/nix/store/lids5rm0c7asv23pvpzgc1p1640ylg0x-chromix-154.0.8037.97`。
+    检查 Ninja 确认 HEVC decoder/parser 和 x86 NASM 对象已进入实际编译图。
+    完整构建先编译 `third_party/ffmpeg:ffmpeg`，让新增后端的问题尽早暴露。
+    性能版配置及完整编译由 chromix-variants-20261019.service 继续执行。
+    主日志 ~/.chromix-build/nix-build.log 链接到本批 build.log；旧 11MiB 日志备份为
+    nix-build-baseline-20261018.log；原包额外用 chromix-before-update-result 建立 GC root。
+
+43. **两版配置完成，开始完整重编（02:40 UTC）**：性能版输出为
+    `/nix/store/h0dc36v90qpdv5l75bmddr0qagldiy4a-chromix-avx2-154.0.8037.97`，
+    同样是 34,876 targets / 4,974 files。两份 Ninja 中实际 FFmpeg C flags 已核验：
+    只有性能版含 -march=x86-64-v3 / -O3；两版都保留 -ffp-contract=off，没有 -ffast-math。
+    性能版 Rust Ninja 中确认有 -Ctarget-cpu=x86-64-v3。通用版配置 NAR 校验通过。
+    chromix-variants-20261019.service 当前进入 build-and-verify:portable，编译 drv 为
+    hmhs5w3309ssph21xxhc10719hdywifq，包装 drv 为 vpwvqc5snw0yv7qsrlx0a9db96zss8qa。
+    只有完整编译、基础运行和新增功能测试都通过，batch 才继续 AVX2 完整构建。

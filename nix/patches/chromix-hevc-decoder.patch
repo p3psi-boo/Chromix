@@ -1,0 +1,73 @@
+diff --git a/media/base/supported_types.cc b/media/base/supported_types.cc
+--- a/media/base/supported_types.cc
++++ b/media/base/supported_types.cc
+@@ -234,6 +234,17 @@
+   if (!IsColorSpaceSupported(type.color_space)) {
+     return false;
+   }
++
++// Keep color-space validation and the shared Uxr codec restriction above this
++// backend query. Only advertise profiles supported by the bundled SW decoder.
++#if BUILDFLAG(ENABLE_FFMPEG_VIDEO_DECODERS) && BUILDFLAG(USE_PROPRIETARY_CODECS)
++  if (type.profile == HEVCPROFILE_MAIN || type.profile == HEVCPROFILE_MAIN10 ||
++      type.profile == HEVCPROFILE_MAIN_STILL_PICTURE ||
++      type.profile == HEVCPROFILE_REXT ||
++      type.profile == HEVCPROFILE_SCREEN_EXTENDED) {
++    return true;
++  }
++#endif
+ 
+ #if BUILDFLAG(ENABLE_PLATFORM_HEVC)
+ #if BUILDFLAG(PLATFORM_HAS_OPTIONAL_HEVC_DECODE_SUPPORT)
+@@ -620,7 +631,7 @@
+ 
+ bool IsDecoderBuiltInVideoCodec(VideoCodec codec) {
+ #if BUILDFLAG(ENABLE_FFMPEG_VIDEO_DECODERS) && BUILDFLAG(USE_PROPRIETARY_CODECS)
+-  if (codec == VideoCodec::kH264) {
++  if (codec == VideoCodec::kH264 || codec == VideoCodec::kHEVC) {
+     return true;
+   }
+ #endif  // BUILDFLAG(ENABLE_FFMPEG_VIDEO_DECODERS) &&
+diff --git a/media/ffmpeg/ffmpeg_common.cc b/media/ffmpeg/ffmpeg_common.cc
+--- a/media/ffmpeg/ffmpeg_common.cc
++++ b/media/ffmpeg/ffmpeg_common.cc
+@@ -69,7 +69,7 @@
+ const char* GetAllowedVideoDecoders() {
+   // This should match the configured lists in //third_party/ffmpeg.
+ #if BUILDFLAG(USE_PROPRIETARY_CODECS) && BUILDFLAG(ENABLE_FFMPEG_VIDEO_DECODERS)
+-  return "h264";
++  return "h264,hevc";
+ #else
+   return "";
+ #endif
+diff --git a/media/filters/ffmpeg_video_decoder.cc b/media/filters/ffmpeg_video_decoder.cc
+--- a/media/filters/ffmpeg_video_decoder.cc
++++ b/media/filters/ffmpeg_video_decoder.cc
+@@ -73,7 +73,6 @@
+     case VideoCodec::kUnknown:
+     case VideoCodec::kVC1:
+     case VideoCodec::kMPEG2:
+-    case VideoCodec::kHEVC:
+     case VideoCodec::kVP9:
+     case VideoCodec::kAV1:
+     case VideoCodec::kDolbyVision:
+@@ -84,6 +83,7 @@
+       NOTREACHED();
+ 
+     case VideoCodec::kH264:
++    case VideoCodec::kHEVC:
+       // Normalize to three threads for 1080p content, then scale linearly
+       // with number of pixels.
+       // Examples:
+@@ -117,8 +117,9 @@
+ 
+ // static
+ bool FFmpegVideoDecoder::IsCodecSupported(VideoCodec codec) {
+-  // We only build support for H.264.
+-  return codec == VideoCodec::kH264 && IsDecoderBuiltInVideoCodec(codec);
++  // H.264 and HEVC are built into the Chrome-branded FFmpeg configuration.
++  return (codec == VideoCodec::kH264 || codec == VideoCodec::kHEVC) &&
++         IsDecoderBuiltInVideoCodec(codec);
+ }
+ 
+ FFmpegVideoDecoder::FFmpegVideoDecoder(std::unique_ptr<MediaLog> media_log)

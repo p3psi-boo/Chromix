@@ -22,9 +22,7 @@
 # that tree to iterate quickly; swap in fetchgit + applyPatches for a clean build.
 
 {
-  pkgs ?
-    import /nix/store/qwxy08ayap8i424l0iygmcj671h7qpgm-b54nhac0czv6fq1wr72gna7vkjxfnbk9-source
-      { },
+  pkgs ? import /nix/store/b54nhac0czv6fq1wr72gna7vkjxfnbk9-source { },
   # Pre-patched source tree, as produced by Chromix/build/prepare-ungoogled.sh.
   chromixSrc ? /home/bubu/.chromix-build/src,
   chromixAssets ? /home/bubu/rev-egolite/Chromix/assets,
@@ -37,6 +35,8 @@
   sourceSnapshot ? null,
   # Optional tar.zst of out/ from this same native Nix build, never an FHS out/.
   buildCheckpoint ? null,
+  # Separate x86-64-v3 / O3 / stronger ThinLTO output; portable stays default.
+  performanceBuild ? false,
 }:
 
 let
@@ -80,6 +80,14 @@ let
   chromiumPatches = pkgs.path + "/pkgs/applications/networking/browsers/chromium/patches";
 
   version = "154.0.8037.97";
+  packageName = if performanceBuild then "chromix-avx2" else "chromix";
+  buildProfile = if performanceBuild then "avx2" else "portable";
+  localPatches = [
+    ./patches/chromix-user-data-directory.patch
+    ./patches/chromix-ffmpeg-hevc-linux-x64.patch
+    ./patches/chromix-hevc-decoder.patch
+  ]
+  ++ lib.optional performanceBuild ./patches/chromix-performance-avx2.patch;
   buildPath = "out/Release";
 
   # Third-party libraries handed to the system instead of the copies vendored in
@@ -172,6 +180,9 @@ let
       # canPlayType('video/mp4') answers "probably" (stock Chromium answers "").
       proprietary_codecs = true;
       ffmpeg_branding = "Chrome";
+      enable_ffmpeg_video_decoders = true;
+      enable_platform_hevc = true;
+      enable_hevc_parser_and_hw_decoder = true;
       # De-branded at build time; the Google Chrome identity is applied at runtime
       # through the --uxr-* switches.
       is_chrome_branded = false;
@@ -188,9 +199,13 @@ let
       fatal_linker_warnings = false;
       blink_enable_generated_code_formatting = false;
     }
+    // lib.optionalAttrs performanceBuild {
+      use_thin_lto = true;
+      thin_lto_enable_optimizations = true;
+    }
   );
   unwrapped = stdenv.mkDerivation (finalAttrs: {
-    pname = "chromix";
+    pname = packageName;
     inherit version;
     src =
       if sourceSnapshot != null then
@@ -225,32 +240,8 @@ let
           "chromium-153-llvm-22.patch"
         ]
       )
-      ++ [
-        (pkgs.writeText "openxr-linux-vulkan-headers.patch" ''
-          --- a/third_party/openxr/BUILD.gn
-          +++ b/third_party/openxr/BUILD.gn
-          @@ -30,6 +30,9 @@
-                 "src/src/common/hex_and_handles.h",
-               ]
-           
-          +    if (is_linux) {
-          +      public_deps = [ "//third_party/vulkan-headers/src:vulkan_headers" ]
-          +    }
-               public_configs = [ ":config" ]
-             }
-           
-          @@ -157,6 +160,9 @@
-           
-               deps = [ "//third_party/jsoncpp" ]
-           
-          +    if (is_linux) {
-          +      public_deps = [ "//third_party/vulkan-headers/src:vulkan_headers" ]
-          +    }
-               public_configs = [ ":config" ]
-           
-               defines = [
-        '')
-      ];
+      ++ [ ./patches/openxr-linux-vulkan-headers.patch ]
+      ++ localPatches;
     hardeningDisable = [ "strictflexarrays1" ];
 
     # Chromium's build scripts call gn/ninja/python directly; nixpkgs' list is the
@@ -409,9 +400,12 @@ let
         manifest = json.loads(Path("checkpoint-manifest.json").read_text())
         expected = ${
           builtins.toJSON {
-            schema = 1;
+            schema = 2;
             source = toString finalAttrs.src;
             gn_flags_sha256 = builtins.hashString "sha256" gnFlags;
+            patches_sha256 = builtins.hashString "sha256" (
+              builtins.toJSON (map (builtins.hashFile "sha256") finalAttrs.patches)
+            );
             stdenv = toString stdenv;
             targets = [
               "chrome"
@@ -477,6 +471,8 @@ let
 
     buildPhase = lib.optionalString (!configureOnly) ''
       runHook preBuild
+      # Fail early on the new decoder backend before scheduling all of Chrome.
+      TERM=dumb ninja -C ${buildPath} -j"''${NIX_BUILD_CORES:-$(nproc)}" third_party/ffmpeg:ffmpeg
       TERM=dumb ninja -C ${buildPath} -j"''${NIX_BUILD_CORES:-$(nproc)}" \
         chrome chrome_crashpad_handler chrome_sandbox
       runHook postBuild
@@ -488,12 +484,16 @@ let
           mkdir -p "$out"
           cp gn-gen-outputs.txt "$out/"
           cp -r ${buildPath} "$out/generated"
+          cp ${pkgs.writeText "chromix-build-info.json" (builtins.toJSON finalAttrs.passthru.buildInfo)} "$out/build-info.json"
         ''
       else
         ''
           runHook preInstall
 
           mkdir -p $out/libexec/chromix $out/bin
+          mkdir -p $out/share/chromix
+          cp ${pkgs.writeText "chromix-build-info.json" (builtins.toJSON finalAttrs.passthru.buildInfo)} \
+            $out/share/chromix/build-info.json
 
           install -Dm755 ${buildPath}/chrome $out/libexec/chromix/chrome
           install -Dm755 ${buildPath}/chrome_crashpad_handler \
@@ -524,6 +524,34 @@ let
     dontBuild = configureOnly;
     dontFixup = configureOnly;
 
+    passthru = {
+      inherit buildProfile gnFlags;
+      buildInfo = {
+        schema = 1;
+        profile = buildProfile;
+        inherit version;
+        source = toString finalAttrs.src;
+        gn_flags_sha256 = builtins.hashString "sha256" gnFlags;
+        patches_sha256 = builtins.hashString "sha256" (
+          builtins.toJSON (map (builtins.hashFile "sha256") finalAttrs.patches)
+        );
+        features = {
+          defaultProfileDirectory = "chromix";
+          hevcSoftwareDecoder = true;
+          hevcProfiles = [
+            "main"
+            "main10"
+            "main-still-picture"
+            "rext"
+            "screen-extended"
+          ];
+          cpuBaseline = if performanceBuild then "x86-64-v3" else "chromium-default";
+          floatingPointContraction = "unchanged";
+          libcxxHardening = "unchanged";
+        };
+      };
+    };
+
     meta = {
       description = "Chromix — ungoogled Chromium with surface-consistency persona patches";
       longDescription = ''
@@ -543,7 +571,7 @@ if configureOnly then
   unwrapped
 else
   pkgs.stdenvNoCC.mkDerivation {
-    pname = "chromix";
+    pname = packageName;
     inherit version;
     dontUnpack = true;
     dontBuild = true;
@@ -564,8 +592,8 @@ else
     ];
 
     # Like nixpkgs' outer chromium wrapper, runtime packaging must not force a
-    # rebuild of the browser. unwrapped is intentionally byte-for-byte the same
-    # derivation as the original source build.
+    # rebuild of the browser. Changes confined to this wrapper leave the
+    # separately compiled unwrapped derivation unchanged.
     installPhase = ''
       runHook preInstall
       mkdir -p "$out"
@@ -592,6 +620,11 @@ else
       EOF_FONTCONFIG
       cp ${chromixAssets + "/../LICENSE"} "$out/share/licenses/chromix/LICENSE.chromix"
       cp ${chromixSrc + "/LICENSE"} "$out/share/licenses/chromix/LICENSE.chromium"
+      cp ${chromixSrc + "/third_party/ffmpeg/COPYING.LGPLv2.1"} \
+        "$out/share/licenses/chromix/LICENSE.ffmpeg"
+      cp ${chromixSrc + "/third_party/ffmpeg/CREDITS.chromium"} \
+        "$out/share/licenses/chromix/CREDITS.ffmpeg"
+      cp ${./patches/LICENSE.StaZhu} "$out/share/licenses/chromix/LICENSE.StaZhu"
 
       # Replace the unwrapped absolute symlink with a launcher for this output's
       # copy of the ELF; leaving it untouched would bypass these runtime fixes.
@@ -632,6 +665,9 @@ else
       grep -F '${version}' "$TMPDIR/chromix-version.txt"
     '';
 
-    passthru = { inherit unwrapped; };
+    passthru = {
+      inherit unwrapped;
+      inherit (unwrapped) buildProfile buildInfo;
+    };
     meta = unwrapped.meta;
   }

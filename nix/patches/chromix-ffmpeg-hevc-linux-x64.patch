@@ -1,0 +1,164 @@
+diff --git a/third_party/ffmpeg/chromium/config/Chrome/linux/x64/config.h b/third_party/ffmpeg/chromium/config/Chrome/linux/x64/config.h
+--- a/third_party/ffmpeg/chromium/config/Chrome/linux/x64/config.h
++++ b/third_party/ffmpeg/chromium/config/Chrome/linux/x64/config.h
+@@ -736,7 +736,7 @@
+ #define CONFIG_AUDIO_FRAME_QUEUE 0
+ #define CONFIG_AUDIODSP 0
+ #define CONFIG_BLOCKDSP 0
+-#define CONFIG_BSWAPDSP 0
++#define CONFIG_BSWAPDSP 1
+ #define CONFIG_CABAC 1
+ #define CONFIG_CBS 0
+ #define CONFIG_CBS_APV 0
+@@ -778,8 +778,8 @@
+ #define CONFIG_H264PRED 1
+ #define CONFIG_H264QPEL 1
+ #define CONFIG_H264_SEI 1
+-#define CONFIG_HEVCPARSE 0
+-#define CONFIG_HEVC_SEI 0
++#define CONFIG_HEVCPARSE 1
++#define CONFIG_HEVC_SEI 1
+ #define CONFIG_HPELDSP 0
+ #define CONFIG_HUFFMAN 0
+ #define CONFIG_HUFFYUVDSP 0
+diff --git a/third_party/ffmpeg/chromium/config/Chrome/linux/x64/config.asm b/third_party/ffmpeg/chromium/config/Chrome/linux/x64/config.asm
+--- a/third_party/ffmpeg/chromium/config/Chrome/linux/x64/config.asm
++++ b/third_party/ffmpeg/chromium/config/Chrome/linux/x64/config.asm
+@@ -722,7 +722,7 @@
+ %define CONFIG_AUDIO_FRAME_QUEUE 0
+ %define CONFIG_AUDIODSP 0
+ %define CONFIG_BLOCKDSP 0
+-%define CONFIG_BSWAPDSP 0
++%define CONFIG_BSWAPDSP 1
+ %define CONFIG_CABAC 1
+ %define CONFIG_CBS 0
+ %define CONFIG_CBS_APV 0
+@@ -764,8 +764,8 @@
+ %define CONFIG_H264PRED 1
+ %define CONFIG_H264QPEL 1
+ %define CONFIG_H264_SEI 1
+-%define CONFIG_HEVCPARSE 0
+-%define CONFIG_HEVC_SEI 0
++%define CONFIG_HEVCPARSE 1
++%define CONFIG_HEVC_SEI 1
+ %define CONFIG_HPELDSP 0
+ %define CONFIG_HUFFMAN 0
+ %define CONFIG_HUFFYUVDSP 0
+diff --git a/third_party/ffmpeg/chromium/config/Chrome/linux/x64/config_components.h b/third_party/ffmpeg/chromium/config/Chrome/linux/x64/config_components.h
+--- a/third_party/ffmpeg/chromium/config/Chrome/linux/x64/config_components.h
++++ b/third_party/ffmpeg/chromium/config/Chrome/linux/x64/config_components.h
+@@ -144,7 +144,7 @@
+ #define CONFIG_H264_QSV_DECODER 0
+ #define CONFIG_H264_RKMPP_DECODER 0
+ #define CONFIG_HAP_DECODER 0
+-#define CONFIG_HEVC_DECODER 0
++#define CONFIG_HEVC_DECODER 1
+ #define CONFIG_HEVC_QSV_DECODER 0
+ #define CONFIG_HEVC_RKMPP_DECODER 0
+ #define CONFIG_HEVC_V4L2M2M_DECODER 0
+@@ -1051,7 +1051,7 @@
+ #define CONFIG_H261_PARSER 0
+ #define CONFIG_H263_PARSER 0
+ #define CONFIG_H264_PARSER 1
+-#define CONFIG_HEVC_PARSER 0
++#define CONFIG_HEVC_PARSER 1
+ #define CONFIG_HDR_PARSER 0
+ #define CONFIG_IPU_PARSER 0
+ #define CONFIG_JPEG2000_PARSER 0
+diff --git a/third_party/ffmpeg/chromium/config/Chrome/linux/x64/config_components.asm b/third_party/ffmpeg/chromium/config/Chrome/linux/x64/config_components.asm
+--- a/third_party/ffmpeg/chromium/config/Chrome/linux/x64/config_components.asm
++++ b/third_party/ffmpeg/chromium/config/Chrome/linux/x64/config_components.asm
+@@ -142,7 +142,7 @@
+ %define CONFIG_H264_QSV_DECODER 0
+ %define CONFIG_H264_RKMPP_DECODER 0
+ %define CONFIG_HAP_DECODER 0
+-%define CONFIG_HEVC_DECODER 0
++%define CONFIG_HEVC_DECODER 1
+ %define CONFIG_HEVC_QSV_DECODER 0
+ %define CONFIG_HEVC_RKMPP_DECODER 0
+ %define CONFIG_HEVC_V4L2M2M_DECODER 0
+@@ -1049,7 +1049,7 @@
+ %define CONFIG_H261_PARSER 0
+ %define CONFIG_H263_PARSER 0
+ %define CONFIG_H264_PARSER 1
+-%define CONFIG_HEVC_PARSER 0
++%define CONFIG_HEVC_PARSER 1
+ %define CONFIG_HDR_PARSER 0
+ %define CONFIG_IPU_PARSER 0
+ %define CONFIG_JPEG2000_PARSER 0
+diff --git a/third_party/ffmpeg/chromium/config/Chrome/linux/x64/libavcodec/codec_list.c b/third_party/ffmpeg/chromium/config/Chrome/linux/x64/libavcodec/codec_list.c
+--- a/third_party/ffmpeg/chromium/config/Chrome/linux/x64/libavcodec/codec_list.c
++++ b/third_party/ffmpeg/chromium/config/Chrome/linux/x64/libavcodec/codec_list.c
+@@ -14,4 +14,5 @@
+     &ff_pcm_s32le_decoder,
+     &ff_pcm_u8_decoder,
+     &ff_libopus_decoder,
++    &ff_hevc_decoder,
+     NULL };
+diff --git a/third_party/ffmpeg/chromium/config/Chrome/linux/x64/libavcodec/parser_list.c b/third_party/ffmpeg/chromium/config/Chrome/linux/x64/libavcodec/parser_list.c
+--- a/third_party/ffmpeg/chromium/config/Chrome/linux/x64/libavcodec/parser_list.c
++++ b/third_party/ffmpeg/chromium/config/Chrome/linux/x64/libavcodec/parser_list.c
+@@ -6,4 +6,5 @@
+     &ff_opus_parser,
+     &ff_vorbis_parser,
+     &ff_vp9_parser,
++    &ff_hevc_parser,
+     NULL };
+diff --git a/third_party/ffmpeg/libavcodec/hevc/autorename_libavcodec_hevc_parse.c b/third_party/ffmpeg/libavcodec/hevc/autorename_libavcodec_hevc_parse.c
+--- /dev/null
++++ b/third_party/ffmpeg/libavcodec/hevc/autorename_libavcodec_hevc_parse.c
+@@ -0,0 +1,2 @@
++// File automatically generated. See crbug.com/495833.
++#include "parse.c"
+diff --git a/third_party/ffmpeg/libavcodec/hevc/autorename_libavcodec_hevc_parser.c b/third_party/ffmpeg/libavcodec/hevc/autorename_libavcodec_hevc_parser.c
+--- /dev/null
++++ b/third_party/ffmpeg/libavcodec/hevc/autorename_libavcodec_hevc_parser.c
+@@ -0,0 +1,2 @@
++// File automatically generated. See crbug.com/495833.
++#include "parser.c"
+diff --git a/third_party/ffmpeg/libavcodec/hevc/autorename_libavcodec_hevc_cabac.c b/third_party/ffmpeg/libavcodec/hevc/autorename_libavcodec_hevc_cabac.c
+--- /dev/null
++++ b/third_party/ffmpeg/libavcodec/hevc/autorename_libavcodec_hevc_cabac.c
+@@ -0,0 +1,2 @@
++// File automatically generated. See crbug.com/495833.
++#include "cabac.c"
+diff --git a/third_party/ffmpeg/ffmpeg_generated.gni b/third_party/ffmpeg/ffmpeg_generated.gni
+--- a/third_party/ffmpeg/ffmpeg_generated.gni
++++ b/third_party/ffmpeg/ffmpeg_generated.gni
+@@ -597,3 +597,36 @@
+     (is_android && current_cpu == "x86")) {
+   ffmpeg_c_sources += [ "compat/strtod.c" ]
+ }
++
++# Chromix: software HEVC backend; keep other brands/platforms unchanged.
++if (is_linux && current_cpu == "x64" && ffmpeg_branding == "Chrome") {
++  ffmpeg_c_sources += [
++    "libavcodec/bswapdsp.c",
++    "libavcodec/hevc/autorename_libavcodec_hevc_parse.c",
++    "libavcodec/hevc/autorename_libavcodec_hevc_parser.c",
++    "libavcodec/hevc/autorename_libavcodec_hevc_cabac.c",
++    "libavcodec/hevc/data.c",
++    "libavcodec/hevc/dsp.c",
++    "libavcodec/hevc/filter.c",
++    "libavcodec/hevc/hevcdec.c",
++    "libavcodec/hevc/mvs.c",
++    "libavcodec/hevc/pred.c",
++    "libavcodec/hevc/ps.c",
++    "libavcodec/hevc/refs.c",
++    "libavcodec/hevc/sei.c",
++    "libavcodec/x86/bswapdsp_init.c",
++    "libavcodec/x86/hevc/dsp_init.c",
++    "libavcodec/x86/h26x/h2656dsp.c",
++  ]
++  ffmpeg_asm_sources += [
++    "libavcodec/x86/bswapdsp.asm",
++    "libavcodec/x86/hevc/add_res.asm",
++    "libavcodec/x86/hevc/deblock.asm",
++    "libavcodec/x86/hevc/dequant.asm",
++    "libavcodec/x86/hevc/idct.asm",
++    "libavcodec/x86/hevc/mc.asm",
++    "libavcodec/x86/hevc/sao.asm",
++    "libavcodec/x86/hevc/sao_10bit.asm",
++    "libavcodec/x86/h26x/h2656_inter.asm",
++  ]
++}
