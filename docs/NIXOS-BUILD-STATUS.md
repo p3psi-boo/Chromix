@@ -986,3 +986,11 @@ tail -f ~/.chromix-build/updates-20261019/build.log
     chromix-variants-20261019.service 当前进入 build-and-verify:portable，编译 drv 为
     hmhs5w3309ssph21xxhc10719hdywifq，包装 drv 为 vpwvqc5snw0yv7qsrlx0a9db96zss8qa。
     只有完整编译、基础运行和新增功能测试都通过，batch 才继续 AVX2 完整构建。
+
+44. **新增 HEVC 后端编译通过（02:46 UTC）**：通用版的独立 FFmpeg 阶段完成 581/581，
+    HEVC decoder/parser、x86 DSP、NASM 和两个静态归档均成功，随后进入浏览器三目标构建。
+    这只证明后端编译通过；完整浏览器链接和新包 Main/Main10 真实解码仍待后续完成。
+    两版 GN 配置输出均已通过 nix-store --verify-path。
+    已用 ~/.chromix-build/nixpkgs-pin 给现存 b54... nixpkgs 输入建立 GC root，避免固定路径再次被回收。
+    主 nix-build.exit 也链接到 batch.exit（当前 running）；旧基线退出码备份为
+    nix-build-baseline-20261018.exit。原 chromix-result 和旧验收 JSON 保持不变。
