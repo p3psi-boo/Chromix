@@ -33,3 +33,8 @@ target_cpu = "x64"
 target_os = "linux"
 
 # ThinLTO is on by default for official builds; left implicit.
+
+# Native Linux builds use one host toolchain and matching headers/libraries.
+# Do not mix Chromium's Debian sysroot with the host glibc. The native Nix
+# derivation sets this independently, together with the unbundle toolchain.
+use_sysroot = false

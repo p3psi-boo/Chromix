@@ -105,7 +105,9 @@ if [ "$RESTORED" -eq 1 ]; then
   echo "==> restored upstream source with Chromix patches: $KEY"
   exit 0
 fi
-if [ "$PLATFORM" = linux ]; then
+if [ "$PLATFORM" = linux ] && [ "${ARCH:-x64}" != "x64" ]; then
+  # Only ARM64 needs the patch-repair guard below. Checking it for x64 would
+  # reject unrelated cold source preparations when the ARM64 pin is absent.
   # Recovery payloads are bound to exact pins and independently checked bytes.
   python3 - "$PLATFORM_PATCHES/ungoogled-chromium/portablelinux/fix-compiling-on-arm64.patch" \
     "$CHROMIUM_VERSION" "$CORE_COMMIT" "$PLATFORM_COMMIT" "$PLATFORM_VERSION" \
