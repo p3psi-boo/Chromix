@@ -1,5 +1,11 @@
 # Building Chromix for Windows x64/arm64, Linux x64/arm64, and macOS x64/arm64
 
+For the verified **native NixOS Linux x64** build of Chromium 154.0.8037.97,
+including HEVC software decoding and the optional x86-64-v3 variant, start with
+[nix/README.md](nix/README.md). That route uses LLVM stdenv/unbundle and no Debian
+sysroot or FHS compiler wrapper. The platform build history below is maintained
+separately from the NixOS implementation.
+
 The build scripts target Windows x64/arm64, Linux x64/arm64, and macOS x64/arm64 using
 pinned `ungoogled-chromium` sources. Each successful platform is verified and
 published independently to its Chromium version's release tag; other platforms

@@ -120,3 +120,14 @@ python sysroot、installer、chromeos 测试里，与本构建无关）。
 - build-variants.sh 分离旧基线、新通用版和 AVX2 产物；新增真实 HEVC/目录/CDP 验证器与自制视频。
 - 只在 Nix 沙箱副本应用 overlay，不改 ~/.chromix-build/src 或原 224 项跨平台补丁。
 - 原有 build/args.gn 与 build/prepare-ungoogled.sh 两处未提交修改继续保留，不混入本轮提交。
+
+### 2026-10-20：发布整理与实际验收归档
+
+- 两版完整构建和真实 HEVC Main/Main10 解码全部通过，Oct20 复测 JSON 归档到
+  docs/nixos-verification/2026-10-20/；旧基线报告与启动链接继续保留。
+- Oct19 保留的两处未提交改动经检查后单独提交为 589a4fc；清理历史 FHS/fast 注释，
+  保留原有 native sysroot 和 arch-aware guard 的行为。
+- nix/chromix.nix 默认源码改为 HOME 下的准备目录（保持 Nix path 类型），assets 改为
+  仓库相对路径；两版 drvPath 整理前后完全相同，不触发 Chromium 重编。
+- 功能验证器通过 realpath 记录实际 store 输出；新增沙箱安装输入防回归测试和公开构建说明。
+- 未改准备好的源码树和 224 项跨平台补丁清单；本次仅推送源码及验证记录，不上传浏览器二进制。

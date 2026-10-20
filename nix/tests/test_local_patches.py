@@ -10,7 +10,7 @@ import unittest
 
 
 NIX = Path(__file__).resolve().parents[1]
-SOURCE = Path(os.environ.get("CHROMIX_TEST_SOURCE", "/home/bubu/.chromix-build/src"))
+SOURCE = Path(os.environ.get("CHROMIX_TEST_SOURCE", str(Path.home() / ".chromix-build/src")))
 SNAPSHOT = os.environ.get(
     "CHROMIX_SOURCE_SNAPSHOT", "/nix/store/gbhrb9map7afqhgj1gqgcs7bczx6hcy5-chromix-source"
 )
@@ -28,6 +28,11 @@ def evaluate(attribute, performance):
 
 
 class LocalPatches(unittest.TestCase):
+    def test_install_sources_are_sandbox_inputs(self):
+        phase = evaluate("installPhase", False)
+        self.assertNotIn(str(SOURCE), phase)
+        self.assertIn("vk_swiftshader_icd.json.tmpl", phase)
+
     def test_both_complete_patch_stacks(self):
         hashes = []
         for performance in (False, True):

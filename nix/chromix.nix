@@ -24,8 +24,9 @@
 {
   pkgs ? import /nix/store/b54nhac0czv6fq1wr72gna7vkjxfnbk9-source { },
   # Pre-patched source tree, as produced by Chromix/build/prepare-ungoogled.sh.
-  chromixSrc ? /home/bubu/.chromix-build/src,
-  chromixAssets ? /home/bubu/rev-egolite/Chromix/assets,
+  # Keep the path type: interpolated source files must become sandbox inputs.
+  chromixSrc ? /. + (builtins.getEnv "HOME" + "/.chromix-build/src"),
+  chromixAssets ? ../assets,
   # Bootstrap gn from the source tree rather than taking nixpkgs' gn: Chromium's
   # gn must match the tree it is generating for.
   bootstrapGn ? true,

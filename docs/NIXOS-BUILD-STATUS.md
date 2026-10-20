@@ -1,14 +1,15 @@
 # Chromix 内核构建：状态与续做说明
 
-> **2026-10-18 最终状态：原生 Nix 构建、打包和真实浏览器验证均已通过。**
-> 启动：`~/rev-egolite/chromix-result/bin/chromix`。版本：`154.0.8037.97`。
-> 现行实现：`Chromix/nix/chromix.nix`（根目录 chromix.nix 为其链接）。
-> 第 1–11 轮 FHS 方案仅保留作历史记录；最终验收见第十二轮末尾及 `NIXOS-PACKAGE-VERIFICATION.json`。
->
-> **2026-10-19 后续：独立用户目录、HEVC 软件解码和可选 AVX2 版正在重新构建验证。**
-> 原 chromix-result 和旧验收 JSON 保留为基线；新产物不沿用旧报告作为功能通过的证据。
+> **2026-10-20 当前状态：通用版和 AVX2 版均已完整构建，新增功能验收和复测通过。**
+> 新通用版：`~/rev-egolite/chromix-next-result/bin/chromix`；性能版：`~/rev-egolite/chromix-avx2-result/bin/chromix`。
+> 两版均为 154.0.8037.97，已验证独立用户目录、HEVC Main/Main10 实际软件解码和禁用策略。
+> [当前构建入口](../nix/README.md)；[本次验收报告](nixos-verification/2026-10-20/README.md)。
+> 原 chromix-result 及 `NIXOS-PACKAGE-VERIFICATION.json` 保留为 Oct18 基线，没有自动替换。
+> 下文第 1–11 轮 FHS/编译器包装内容均为历史记录，不是当前阻塞或推荐构建路线。
 
-## 已完成（可复现）
+## 第 1–11 轮历史记录（已废弃路线）
+
+### 当时已完成
 
 | 步骤 | 产物 | 状态 |
 |---|---|---|
@@ -18,7 +19,7 @@
 | Rust 工具链 | `tools/rust/update_rust.py` 已跑 | ✅ |
 | gn 自举 | 进行中 | ⚠️ |
 
-## 当前阻塞点：gn bootstrap 找不到 C 库头文件
+### 当时的阻塞：gn bootstrap 找不到 C 库头文件
 
 ```
 src/gn/command_gen.o: .../lib/clang/24/include/inttypes.h:24:15:
@@ -38,7 +39,7 @@ src/gn/command_format.o: 'string' file not found   ← libstdc++ 头文件
    （实测 `/usr/include/c++/*/string` 不存在）—— 需要确认 buildFHSEnv 里
    `extraBuildCommands` 的写法（`$out` 指向、执行时机）。
 
-## 下一步（按优先级）
+### 当时拟定的下一步（不适用于当前原生 Nix 构建）
 
 1. **修好头文件**（二选一）：
    - a) 在 `build-fhs.nix` 里正确注入 glibc + libstdc++ 头文件到 `/usr/include`
@@ -960,7 +961,7 @@ CHROMIX_SOURCE_SNAPSHOT=/nix/store/gbhrb9map7afqhgj1gqgcs7bczx6hcy5-chromix-sour
 tail -f ~/.chromix-build/updates-20261019/build.log
 ```
 
-**新功能当前状态：源码检查通过，GN/新包构建和运行验收进行中；不宣称已完成。**
+**2026-10-19 02:33 的中间状态：源码检查通过，GN/新包构建和运行验收进行中。最终结果见文末。**
 
 41. **验证器的 headless 路径假设修正**：用旧包做反例发现，M154 headless 不直接使用
     默认目录，而由 GetDefaultUserDataDirectory 派生 `chromium-headless/scoped_dir*`。
@@ -994,3 +995,32 @@ tail -f ~/.chromix-build/updates-20261019/build.log
     已用 ~/.chromix-build/nixpkgs-pin 给现存 b54... nixpkgs 输入建立 GC root，避免固定路径再次被回收。
     主 nix-build.exit 也链接到 batch.exit（当前 running）；旧基线退出码备份为
     nix-build-baseline-20261018.exit。原 chromix-result 和旧验收 JSON 保持不变。
+
+## 第十二轮后续最终验收与推送整理（2026-10-20）
+
+45. **两版完整构建和功能验收均完成**：通用版于 Oct19 05:37:58 UTC、性能版于
+    08:42:00 UTC 完成；两版 runner 和整批任务均退出 0，phase=complete。
+    - 通用版：`/nix/store/7akwq4jmy4xxqimy0srbrj2jgn9rj03p-chromix-154.0.8037.97`。
+    - 性能版：`/nix/store/lmal1cc1f6b7nd9v0cbqb50ax0pzchq6-chromix-avx2-154.0.8037.97`。
+    - 两版均完成三个 ELF 的检查、版本/JS/DOM、默认目录、HEVC Main/Main10 的 WebCodecs
+      和 HTML video 真实软件解码、预期像素、MediaCapabilities 和禁用策略检查。
+    - 构建服务中的基础运行报告曾有 D-Bus 环境提示；Oct20 在当前用户环境独立复测时
+      两版 stderr 均为空。没有传 --no-sandbox，新增解码测试禁用了硬件视频解码。
+    - 两个新产物重新通过 NAR 完整性检查；旧 chromix-result 仍保留，没有自动切换。
+    - Oct20 的四份真实验收报告归档于 `docs/nixos-verification/2026-10-20/`，不替换旧基线 JSON。
+      该结果不等同于全量 224 个 persona 补丁验收，也没有宣称性能提升。
+
+46. **面向远端仓库的整理**：增加 nix/README.md，从 README.md / BUILDING.md 链入；
+    顶部状态明确区分当前已完成结果和旧 FHS 历史。保留原有逐步提交，不压缩或重写历史。
+    原来未提交的 build/args.gn（native sysroot）和 prepare-ungoogled.sh（ARM64 guard）
+    经检查后单独提交为 589a4fc；清除“non-official fast / FHS”旧注释，不改这两处现有行为。
+
+47. **路径参数与验证身份整理**：源码默认值改为当前 HOME 下准备目录，assets 使用仓库
+    相对路径；固定 nixpkgs 和工具链选择保持不变。注意动态源码默认值必须是 Nix path，
+    不是普通字符串，否则许可证/ICD/esbuild 的本地路径不会成为沙箱输入。
+    使用 `/. + ...` 保留 path 类型并增加安装输入测试；整理前后两版完整 drvPath 均相同，
+    没有改变已验收的编译/打包输入。功能验证报告改用 realpath 记录实际 store 身份，
+    重新运行后与基础包报告的 store 路径完全一致。
+
+本次向 p3psi-boo/Chromix 推送的是源码、补丁、构建入口、文档和小型合成测试视频；
+不提交 10GB 源码树、out/、Nix store 浏览器二进制或本机大日志，不创建 Release。

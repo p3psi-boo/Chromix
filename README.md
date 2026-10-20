@@ -300,10 +300,13 @@ When reporting an issue, include OS/architecture, browser version, SDK version, 
 | Inspect verification status | [Status](FINGERPRINT_STATUS.md), [coverage](docs/fingerprint-coverage-matrix.md), [acceptance](docs/fingerprint-acceptance.md) |
 | Compare CloakBrowser-compatible APIs | [Functionality comparison](docs/cloakbrowser-functionality-comparison.md), [implementation history](docs/functionality-followup.md) |
 | Build, resume, package or publish | [BUILDING.md](BUILDING.md) |
+| Build natively on NixOS / enable HEVC / select the AVX2 variant | [Native NixOS build](nix/README.md) |
 
 ## Build and contribute
 
 The repository pins Chromium, ungoogled core and platform overlays, then applies the Chromix stack from [patches/series](patches/series). See [BUILDING.md](BUILDING.md) for per-platform dependencies and staged GitHub Actions builds.
+
+For **NixOS Linux x64**, use the [native Nix derivation](nix/README.md), not an FHS environment. Portable and optional x86-64-v3 builds of Chromium 154.0.8037.97 have passed real HEVC Main/Main10 software-decoding checks; [verification reports](docs/nixos-verification/2026-10-20/README.md) record the exact local outputs.
 
 Windows needs Visual Studio C++ tools and Windows SDK **10.0.28000.0**, including Debugging Tools, plus Python, Git, PowerShell 7 and 7-Zip. Linux and macOS require their respective Chromium toolchains. Build caches restore source and intermediate outputs; Ninja recompiles outputs affected by changed inputs.
 
@@ -325,6 +328,7 @@ git diff --check
 ```text
 patches/       Chromium source patches and version-specific overrides
 build/         Platform preparation, staged compilation and packaging
+nix/           Native NixOS derivation, local source overlay and verification
 docker/        Release-based Linux container
 site/          GitHub Pages project website
 sdk/           Python and Node automation wrappers

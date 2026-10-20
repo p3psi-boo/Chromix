@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { mkdtemp, readFile, readdir, rm, access } from 'node:fs/promises';
+import { mkdtemp, readFile, readdir, realpath, rm, access } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url';
 import { setTimeout as sleep } from 'node:timers/promises';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const packageRoot = resolve(process.argv[2] ?? 'chromix-next-result');
+const packageRoot = await realpath(resolve(process.argv[2] ?? 'chromix-next-result'));
 const info = JSON.parse(await readFile(join(packageRoot, 'share/chromix/build-info.json')));
 assert.equal(info.features.defaultProfileDirectory, 'chromix');
 assert.equal(info.features.hevcSoftwareDecoder, true);

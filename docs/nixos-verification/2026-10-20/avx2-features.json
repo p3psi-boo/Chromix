@@ -1,0 +1,46 @@
+{
+  "status": "passed",
+  "package": "/nix/store/lmal1cc1f6b7nd9v0cbqb50ax0pzchq6-chromix-avx2-154.0.8037.97",
+  "profile": "avx2",
+  "defaultProfileDirectory": "chromix",
+  "hardwareDecodeDisabled": true,
+  "noSandboxFlagPassed": false,
+  "decoded": [
+    {
+      "profile": "main",
+      "webCodecs": "decoded",
+      "htmlVideo": "decoded",
+      "mediaCapabilities": "supported",
+      "pixel": [
+        254,
+        0,
+        0,
+        255
+      ],
+      "softwarePreferred": true
+    },
+    {
+      "profile": "main10",
+      "webCodecs": "decoded",
+      "htmlVideo": "decoded",
+      "mediaCapabilities": "supported",
+      "pixel": [
+        254,
+        0,
+        0,
+        255
+      ],
+      "softwarePreferred": true
+    }
+  ],
+  "disabledPolicy": [
+    {
+      "profile": "main",
+      "blocked": true
+    },
+    {
+      "profile": "main10",
+      "blocked": true
+    }
+  ]
+}
